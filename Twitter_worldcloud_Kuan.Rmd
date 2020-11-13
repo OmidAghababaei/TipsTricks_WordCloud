@@ -1,0 +1,97 @@
+---
+title: "Twitter_worldcloud_Kuan"
+author: "Kuan Liu"
+date: "12/11/2020"
+output: html_document
+---
+
+**Date Created:** Nov 11, 2020
+<!-- Jun 19 -->
+**Date Updated:** `r format(Sys.time(), "%b %d, %Y")`
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(message = FALSE, warning = FALSE, fig.align = "center",fig.height = 6, fig.width = 9)
+options(knitr.kable.NA = '-')
+```
+
+## The Background Story
+
+So here we are. Worldcloud on my twitter posts
+
+## Overall summary of the most recent 3200 posts from me~ 
+As of `r format(Sys.time(), "%b %d, %Y %X")` EDT
+
+
+```{r echo=FALSE}
+library(rtweet)
+library(dplyr)
+library(tm)
+library(wordcloud)
+library(memoise)
+library(tidytext)
+
+Kuan <- get_timelines("@KuanLiu2", n= 3200)
+
+# Kuan_retweet<- Kuan[Kuan$is_retweet==TRUE,]
+# Kuan_quote<- Kuan[Kuan$is_quote==TRUE,]
+# Kuan_reply<- subset(Kuan, is.na(Kuan$reply_to_status_id)==FALSE) 
+# 
+# Kuan$tweetcat<-"Tweet"
+# Kuan$tweetcat[Kuan$status_id %in% Kuan_retweet$status_id]<-"Retweet"
+# Kuan$tweetcat[Kuan$status_id %in% Kuan_quote$status_id]<-"Quote"
+# Kuan$tweetcat[Kuan$status_id %in% Kuan_reply$status_id]<-"Reply"
+
+# Text Cleaning;
+Kuan$text <-  gsub("https\\S*", "", Kuan$text)
+Kuan$text <-  gsub("@\\S*", "", Kuan$text) 
+Kuan$text  <-  gsub("amp", "", Kuan$text) 
+Kuan$text  <-  gsub("[\r\n]", "", Kuan$text)
+Kuan$text  <-  gsub("[[:punct:]]", "", Kuan$text)
+
+tweets <- Kuan %>% select(text) %>% unnest_tokens(word, text)
+
+tweets$word[tweets$word %in% c("test","tests","tested")]<-"testing"
+tweets$word[tweets$word=="case"]<-"cases"
+tweets$word[tweets$word=="masks"]<-"mask"
+tweets$word[tweets$word=="deaths"]<-"death"
+tweets$word[tweets$word=="students"]<-"student"
+tweets$word[tweets$word=="hospitals"]<-"hospital"
+tweets$word[tweets$word=="years"]<-"year"
+tweets$word[tweets$word=="biostatistics"]<-"biostat"
+tweets$word[tweets$word %in% c("haha")]<-"lol"
+tweets$word[tweets$word=="ppl"]<-"people"
+tweets$word[tweets$word=="covid"]<-"covid19"
+tweets$word[tweets$word=="sharing"]<-"share"
+tweets$word[tweets$word=="learning"]<-"learn"
+tweets$word[tweets$word=="working"]<-"work"
+tweets$word[tweets$word=="dash"]<-"dashboard"
+tweets$word[tweets$word=="issue"]<-"issues"
+tweets$word[tweets$word %in% c("reporting","reported")]<-"report"
+
+myCorpus = Corpus(VectorSource(tweets))
+  myCorpus = tm_map(myCorpus, content_transformer(tolower))
+  myCorpus = tm_map(myCorpus, removePunctuation)
+  # myCorpus = tm_map(myCorpus, removeNumbers)
+  # myCorpus = tm_map(myCorpus, stemDocument) #change purular to singular
+  myCorpus = tm_map(myCorpus, removeWords,
+         c(stopwords("SMART"),"dont","takes","things","made","makes","make","years","year","weeks","week","days","day","lot","thing","how"))
+
+  myDTM = TermDocumentMatrix(myCorpus,
+              control = list(minWordLength = 1))
+  
+  m = as.matrix(myDTM)
+  
+  v<- sort(rowSums(m), decreasing = TRUE)
+  d <- data.frame(word = names(v),freq=v)
+  # head(d, 10)
+  
+png("wordcloud_Kuan2.png", width=6,height=6, units='in', res=600)
+par(mar = rep(0, 4))
+wordcloud( words=d$word, freq=d$freq, min.freq=10,  random.order=FALSE, rot.per=0.3,  colors=brewer.pal(8, "Dark2"))
+dev.off()
+
+
+
+```
+
+
